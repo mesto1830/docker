@@ -12,7 +12,7 @@ sudo docker container stop id -f
 sudo docker images  //list images
 sudo docker rmi imageid -f //delete image
 docker system prune -a  //remove all images
-sudo docker system prune -a --volumes //remove all images
+sudo docker system prune -a --volumes //remove all images with volumes
 
 //docker compose
 create yaml file
