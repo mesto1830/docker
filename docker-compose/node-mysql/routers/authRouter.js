@@ -15,10 +15,8 @@ Router.post('/register', wrapAsync(async(req, res) => {
     req.flash('danger', errors[0].message)
     res.render('register', {name:req.body.name,password: req.body.password})
   }else{
-    const conn = await mysql.getConnection()
-    conn.release()
-    const checkUser = await conn.query('SELECT * FROM users WHERE name = ? LIMIT 1', [req.body.name])
-    if(checkUser[0].length > 0){
+    const checkUser = await mysql.query('SELECT * FROM users WHERE name = ? LIMIT 1', [req.body.name])
+    if(checkUser.length > 0){
       req.flash('danger','This user is exists!')
       res.redirect('/register')
     }else{
@@ -26,7 +24,7 @@ Router.post('/register', wrapAsync(async(req, res) => {
         name: req.body.name,
         password: cryptr.encrypt(req.body.password)
       }
-      await conn.query('INSERT INTO users SET ?', [newUser])
+      await mysql.query('INSERT INTO users SET ?', [newUser])
       req.flash('success','Saved Success!')
       res.redirect('/login')
     }
@@ -38,22 +36,21 @@ Router.get('/login', wrapAsync(async(req, res) => {
 }))
 
 Router.post('/login', wrapAsync(async(req, res) => {
-  const conn = await mysql.getConnection()
-  conn.release()
-  const checkUser = await conn.query('SELECT * FROM users WHERE name = ? LIMIT 1', [req.body.name])
-  if(checkUser[0].length > 0){
-    let dePass = cryptr.decrypt(checkUser[0][0].password)
-    if(req.body.password == dePass){
-      req.session.admin = checkUser[0][0].name
-      res.redirect('/admin/users')
+  mysql.query('SELECT * FROM users WHERE name = ? LIMIT 1', [req.body.name], (err,rows, fileds) => {
+    if(rows.length > 0){
+      let dePass = cryptr.decrypt(rows[0].password)
+      if(req.body.password == dePass){
+        req.session.admin = rows[0].name
+        res.redirect('/admin/users')
+      }else{
+        req.flash('danger','Password not match')
+        res.render('login', {name:req.body.name, password: req.body.password})
+      }
     }else{
-      req.flash('danger','Password not match')
-      res.render('login', {name:req.body.name, password: req.body.password})
+      req.flash('danger','User not found')
+      res.redirect('/login')
     }
-  }else{
-    req.flash('danger','User not found')
-    res.redirect('/login')
-  }
+  })
 }))
 
 //logout
